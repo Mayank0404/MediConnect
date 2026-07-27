@@ -1,0 +1,67 @@
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: mediconnect-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - mediconnect-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: mediconnect-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mediconnect.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+  redis-stack:
+    image: redis/redis-stack:7.4.0-v6
+    container_name: mediconnect-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - mediconnect-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: mediconnect-redis-insight
+    restart: unless-stopped
+    ports:
+      - "${REDIS_INSIGHT_PORT}:5540"
+    volumes:
+      - redis-insight-data:/db
+    networks:
+      - mediconnect-network
+volumes:
+  postgres-data:
+  redis-data:
+  redis-insight-data:
+networks:
+  mediconnect-network:
+    driver: bridge
+
